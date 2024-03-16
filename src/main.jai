@@ -523,13 +523,11 @@ editor_toggle_fullscreen :: () {
 
 open_another_editor_instance :: () {
     new_window_process := Process.{};
-    #if OS == .WINDOWS {
-        kill_children := false;
+    #if OS == .LINUX || OS == .MACOS {
+        create_process(*new_window_process, .. args, "", capture_and_return_output = false, arg_quoting = Process_Argument_Quoting.QUOTE_IF_NEEDED);
     } else {
-        // Not killing children is not yet implemented on non-Windows systems
-        kill_children := true;
+        create_process(*new_window_process, .. args, "", capture_and_return_output = false, arg_quoting = Process_Argument_Quoting.QUOTE_IF_NEEDED, kill_process_if_parent_exits = false);
     }
-    create_process(*new_window_process, .. focus_executable_args, "", capture_and_return_output = false, arg_quoting = Process_Argument_Quoting.QUOTE_IF_NEEDED, kill_process_if_parent_exits = kill_children);
 }
 
 increase_font_size :: () {
@@ -948,9 +946,9 @@ DOUBLE_CLICK_SPEED     :: 0.3;  // how many seconds between clicks to consider i
 DOUBLE_CLICK_TOLERANCE :: 2;    // how many pixels between the click locations are allowed
 
 // Embed default fonts
-FONT         :: #run load_font("FiraCode-Retina.ttf");
-FONT_UI      :: #run load_font("OpenSans-Regular.ttf");
-FONT_UI_BOLD :: #run load_font("OpenSans-SemiBold.ttf");
+FONT         :: #run load_font("spleen-32x64.otf");
+FONT_UI      :: #run load_font("spleen-32x64.otf");
+FONT_UI_BOLD :: #run load_font("spleen-32x64.otf");
 FONT_ICONS   :: #run load_font("font-awesome/Font Awesome 6 Free-Solid-900.otf");
 
 MIN_FONT_SIZE :: 4;

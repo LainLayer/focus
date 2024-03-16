@@ -952,7 +952,7 @@ FONT_UI_BOLD :: #run load_font("spleen-32x64.otf");
 FONT_ICONS   :: #run load_font("font-awesome/Font Awesome 6 Free-Solid-900.otf");
 
 MIN_FONT_SIZE :: 4;
-MAX_FONT_SIZE :: 30;  // setting a larger size has caused freetype to crash - not sure yet why.
+MAX_FONT_SIZE :: 40;  // setting a larger size has caused freetype to crash - not sure yet why.
                       // Probably we don't give it enough memory for a glyph bitmap when rendering it?
 
 load_font :: (name: string) -> Embedded_Font {

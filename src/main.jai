@@ -34,6 +34,29 @@ examples:
         TEXT, focus_executable_args[0], VERSION)
     );
 
+    if command_line_flags.detach {
+        #if OS == .LINUX || OS == .MACOS {
+            using POSIX :: #import "POSIX";
+
+            // Fork to a child, detach from the parent, and then close the parent.
+            pid := fork();
+            if pid == 0 {
+                // in child
+                setsid();
+                dev_null := open("/dev/null", O_RDWR);
+                for s32.[0,1,2] dup2(dev_null, it);
+                if dev_null > 2
+                    close(dev_null);
+
+            } else if pid < 0 {
+                log_error("Failed to fork to detach from the terminal: %", get_error_string(errno()));
+            } else {
+                // in parent
+                exit(0);
+            }
+        }
+    }
+
     platform_setup();
 
     // Remember important directories

@@ -13,6 +13,27 @@ main :: () {
         if !check_feature(cpu_info.feature_leaves, x86_Feature_Flag.AES) then calculate_hash = fallback_hash;
     }
 
+    command_line_flags: struct {
+        project: string; @"Open focus to a specific project"
+        detach:  bool;   @"Detach from the terminal when launching"
+    };
+
+    focus_executable_args = get_command_line_arguments();
+
+    non_flag_arguments := parse_command_line_flags(
+        *command_line_flags,
+        array_view(focus_executable_args, 1, focus_executable_args.count - 1),
+        (error: string) { add_user_error(error); },
+        sprint(#string TEXT
+Focus text editor - https://github.com/focus-editor/focus
+version: %2
+
+examples:
+    %1 <file 1> <file 2> <directory> ...
+    %1 -project <project name>
+        TEXT, focus_executable_args[0], VERSION)
+    );
+
     platform_setup();
 
     // Remember important directories
@@ -55,12 +76,9 @@ main :: () {
     platform_create_window();
 
     // Process command line parameters
-    focus_executable_args = get_command_line_arguments();
-
-    args := focus_executable_args;
-    if args.count == 3 && args[1] == "-project" {
+    if command_line_flags.project != "" {
         // - `focus.exe -project "Project Name"` or `focus.exe -project <path/to/project>` will load a project. No other arguments are allowed.
-        project := args[2];
+        project := command_line_flags.project;
         success: bool;
         if ends_with_nocase(project, ".focus-config") {
             success = load_project_config(project);
@@ -69,13 +87,15 @@ main :: () {
             success = load_project_config(config_path);
         }
         if !success then add_user_error("Couldn't load project config '%' provided in the command line arguments", project);
-    }
-    else if args.count >= 2 {
+
+        if non_flag_arguments.count != 0
+            add_user_error("The '-project' flag does not permit passing extra file paths. You passed % extra files, they were ignored.", non_flag_arguments.count);
+    } else {
         // - `focus.exe <path1> <path2> ...` will open files or add directories to the workspace
         dirs_from_args: [..] string;
         dirs_from_args.allocator = temp;
 
-        for path : array_view(args, 1, args.count - 1) {
+        for path : non_flag_arguments {
             if is_directory(path) {
                 dir := trim_right(path, "\\/");
                 project_config_path := tprint("%/.focus-config", dir);
@@ -88,23 +108,17 @@ main :: () {
             } else if file_exists(path) {
                 editors_open_file(path);
             } else {
-                if path == "-project" {
-                    add_user_error("The '-project' command line argument is used incorrectly.\nCorrect usage: focus -project <project name or path>.\nNo other arguments are allowed in this case.");
-                } else if starts_with(path, "-") {
-                    add_user_error("Invalid command line parameter '%'.", path);
-                } else {
-                    opened := false;
-                    found, file, line_str := split_from_right(path, ":",, temp);
-                    if found {
-                        line, success := parse_int(*line_str);
-                        if success && line >= 0 && file_exists(file) && !is_directory(file) {
-                            editors_open_file(file, line = line);
-                            opened = true;
-                        }
+                opened := false;
+                found, file, line_str := split_from_right(path, ":",, temp);
+                if found {
+                    line, success := parse_int(*line_str);
+                    if success && line >= 0 && file_exists(file) && !is_directory(file) {
+                        editors_open_file(file, line = line);
+                        opened = true;
                     }
-
-                    if !opened add_user_error("Invalid command line parameter '%'.\nAttempted to load it as a file or a directory, but it doesn't exist.", path);
                 }
+
+                if !opened add_user_error("Invalid command line parameter '%'.\nAttempted to load it as a file or a directory, but it doesn't exist.", path);
             }
         }
 
@@ -1033,6 +1047,7 @@ focus_allocator: Allocator;
 #load "user_messages.jai";
 #load "deferred_actions.jai";
 #load "history.jai";
+#load "flag_parser.jai";
 
 #load "utils/array.jai";
 #load "utils/aho_corasick.jai";

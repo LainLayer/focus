@@ -699,7 +699,13 @@ open_another_editor_instance :: () {
         // Not killing children is not yet implemented on non-Windows systems
         kill_children := true;
     }
+
+    old_arg := focus_executable_args[0];
+    focus_executable_args[0] = get_path_of_running_executable();
+
     create_process(*new_window_process, .. focus_executable_args, "", capture_and_return_output = false, arg_quoting = Process_Argument_Quoting.QUOTE_IF_NEEDED, kill_process_if_parent_exits = kill_children);
+
+    focus_executable_args[0] = old_arg;
 }
 
 increase_font_size :: () {
